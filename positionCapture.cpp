@@ -1,10 +1,15 @@
 #include <iostream>
 #include <stdio.h>
+#include <math.h>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/core.hpp>
+
+#define PI 3.1415926
+#define FACE_TOWARDS 1
+#define FACE_BACKWARDS 0
 
 using namespace cv;
 using namespace std;
@@ -52,7 +57,7 @@ Point findColorCenter(Mat imgThresholded) {
         }
     } 
     Rect rec = boundingRect(biggestContour);
-    Point center = Point( (rec.x+rec.width)/2, (rec.y+rec.height)/2 );
+    Point center = Point( rec.x+rec.width/2, rec.y+rec.height/2 );
     return center;
 }
 
@@ -68,8 +73,8 @@ Mat thresholdImage(Mat frame, int color) {
         inRange(frameHSV, Scalar(lowH_g, lowS_g, lowV_g), Scalar(highH_g, highS_g, highV_g), imgThresholded);
     }
 
-    dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-    erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+   // dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+   // erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
     return imgThresholded;
 }
 
@@ -110,10 +115,44 @@ void onMouse(int event, int x, int y, int flags, void* param) {
     }
 }
 
+struct Angle {
+    double theta;
+    int orientation;
+};
+
+Angle findAngle(Point pt1, Point pt2, Point dest) {
+    Angle ang;
+    double rVec_x = (double) pt2.x - (double) pt1.x;
+    double rVec_y = (double) pt2.y - (double) pt1.y;
+
+    Point mid = Point((pt2.x + pt1.x)/2, (pt2.x + pt1.x)/2);
+
+    double dVec_x = (double) mid.x - dest.x;
+    double dVec_y = (double) mid.y - dest.y;
+
+    double rVecAbs = sqrt(pow(rVec_x,2) + pow(rVec_y,2));
+    double dVecAbs = sqrt(pow(dVec_x,2) + pow(dVec_y,2));
+    if (rVecAbs*dVecAbs == 0) {
+        cout << "Divided by zero!" << endl;
+        ang.theta = 0;
+        ang.orientation = FACE_TOWARDS;
+        return ang;
+    }
+    double angle = acos(((rVec_x * dVec_x) + (rVec_y * dVec_y)) / 
+        (rVecAbs * dVecAbs));
+    ang.theta = angle;
+    if (Point(rVec_x, rVec_y).dot(Point(dVec_x, dVec_y)) > 0) {
+        ang.orientation = FACE_TOWARDS;
+    }
+    else {
+        ang.orientation = FACE_BACKWARDS;
+    }
+    return ang;
+}
+
 int main() {
 
     VideoCapture cap(0);
-
     if (!cap.isOpened()) {
         cout << "Cannot open the video cam" << endl;
         return -1;
@@ -123,7 +162,7 @@ int main() {
     Point greenPos;
     
     MouseParam param;
-    Mat frame, imgThresholdedYellow, imgThresholdedGreen;
+    Mat frame, imgThresholdedBlue, imgThresholdedGreen;
     int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
     int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
     namedWindow("Video_Capture", CV_WINDOW_AUTOSIZE); 
@@ -137,23 +176,35 @@ int main() {
             break;
         }
         param.img = frame;
-        imgThresholdedYellow = thresholdImage(frame, 1);
+        imgThresholdedBlue = thresholdImage(frame, 1);
         imgThresholdedGreen  = thresholdImage(frame, 2);   
-        double yellowX, yellowY, greenX, greenY;
+        double blueX, blueY, greenX, greenY;
 
-        imshow("Video_Capture", frame);
-        imshow("Thresholded_Blue", imgThresholdedYellow); // means blue
-        imshow("Thresholded_Green", imgThresholdedGreen);
-
-        Point yellowCenter = findColorCenter(imgThresholdedYellow);
+        Point blueCenter = findColorCenter(imgThresholdedBlue);
         Point greenCenter = findColorCenter(imgThresholdedGreen);
-        yellowX = yellowCenter.x;
-        yellowY = yellowCenter.y;
+        blueX = blueCenter.x;
+        blueY = blueCenter.y;
         greenX = greenCenter.x;
         greenY = greenCenter.y;
+        
+        Point test = Point(0, 0);
 
-        cout << "Blue: " << yellowX << ", " << yellowY << endl;
+        Angle ang = findAngle(blueCenter, greenCenter, test);
+        double angle = ang.theta * 180.0 / 3.14159;
+        cout << "The angle is: ";
+        cout << angle << endl;
+
+        Point mid = Point((greenCenter.x + blueCenter.x)/2, (greenCenter.y + blueCenter.y)/2);
+
+        line(frame, blueCenter, greenCenter, Scalar(165, 206, 94), 1, 8, 0);
+        line(frame, mid, test, Scalar(255, 255, 0), 1, 8, 0);
+ 
+        imshow("Video_Capture", frame);
+        imshow("Thresholded_Blue", imgThresholdedBlue); // means blue
+        imshow("Thresholded_Green", imgThresholdedGreen);
+        cout << "Blue: " << blueX << ", " << blueY << endl;
         cout << "Green: " << greenX << ", " << greenY << endl;
+        cout << "Orientation: " << ang.orientation << endl;
         // If keypress is esc for 30ms, exit the program
         if (waitKey(30) == 27) {
             cout << "Exit the program" << endl;
