@@ -16,7 +16,7 @@ module testbench();
 	
 	initial begin
 		din = 8'h50;
-		reset = 1'b1; #900;
+		reset = 1'b1; #900f;
 		reset = 1'b0;
 		
 		attn = 1'b0; #270;
