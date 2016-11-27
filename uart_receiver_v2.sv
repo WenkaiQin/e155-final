@@ -45,47 +45,20 @@ module uart_rx(input  logic clk,
 	
 	logic bck, sck, valid;
 	clk_gen cg0(clk, reset, bck, sck);
-	sampler s0(sck, reset, rx, valid, srx);
 	rx_state fsm0(bck, reset, rx, data);
 			
 endmodule
 
-module sampler(input  logic sck,
-					input  logic reset,
-					input  logic rx,
-					output logic valid,
-					output logic out);
 
-	logic [3:0] sck_c;
-	logic [2:0] cbit_c;
-	logic [4:0] capture;
-	
-	always_ff@(posedge sck, posedge reset) begin
-		
-		sck_c <= sck_c + 4'b1;
-		
-		if(reset) begin
-			sck_c <= 4'hf;
-			capture <= 5'b01000;
-		end else if(cbit_c == 5) begin
-			cbit_c <= 3'b0;
-			out <= capture[2];
-			valid <= (&capture || &(~capture));
-		end else if(sck_c <= 2 || sck_c >= 13) begin
-			capture[cbit_c] <= rx;
-			cbit_c <= cbit_c + 3'b1;
-		end
-	end
-			
-endmodule
-
-module rx_state(input  logic bck,
+module rx_state(input  logic clk,
 					 input  logic reset,
 					 input  logic rx,
 					 output logic [7:0] data);
 	
+	logic read_en, count_en, out_en;
 	logic [7:0] tempdata;
-	logic [2:0] bitCount;          // Counting from 0 - 8, one extra bit for overflow
+	logic [7:0] count;
+	logic [2:0] bit_c;          // Counting from 0 - 8, one extra bit for overflow
 
 	// State transition
 	// S0 : IDLE state, wait for RX to be low
@@ -95,40 +68,55 @@ module rx_state(input  logic bck,
 	typedef enum logic [1:0] {S0 = 2'b00, S1 = 2'b01, S2 = 2'b10, S3 = 2'b11} statetype; 
 	statetype state, nextstate;
 	
-	always_ff @(posedge bck)        // Counter for bitCount
-		if (state == S1 || state == S2)  bitCount <= bitCount+3'b1;
-		else              bitCount <= 0;
-		
-	always_ff @(posedge bck, posedge reset) begin
-		if (reset) state <= S0;
-		else if(state == S1 || state == S2) begin
-			tempdata <= {rx, tempdata[7:1]};
-			state <= nextstate;
-		end else if(state == S3) begin
-			data <= tempdata;
-			state <= nextstate;
-		end else
-			state <= nextstate;
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			state <= S0;
+			count <= 8'b0;
+			bit_c <= 3'b0;
+			tempdata <= 8'b0;
+			data <= 8'b0;
+
+		end else begin
+			if(read_en)
+				tdata <= {rx, tdata[7:1]};
+			    // tdata[bit_c] <= rx;
+			if(count_en)
+				count <= count + 1;
+			else
+				count <= 8'b0;
+
+			if(out_en)
+				data <= tdata;
+
+		end
 	end
 		
 	// Combination logic for state transition
-	always_comb
-		case (state)
+	always_comb begin
+		case(state)
 			// If rx is low, go to next state
-			S0: if (rx == 0)  nextstate = S1;
-				else          nextstate = S0;
-			// Directly go to data state
-			S1: nextstate = S2;
-			// Wait for bitCount to overflow (i.e. bitCount >= 8)
-			S2: if (bitCount == 7)   nextstate = S3;
-			    else                nextstate = S2;
-			// Go to IDLE state
+			S0: if(!rx) nextstate = S1;
+				else	nextstate = S0;
+
+			S1: if(count==7) nextstate = S2;
+				else		 nextstate = S1;
+			
+			S2: if(read_en && bit_c >= 7) nextstate = S3;
+			    else					  nextstate = S2;
+			
 			S3: nextstate = S0;
+
 			default: nextstate = S0;
+
 		endcase
 
-	// Use a shift register to access and store the data
-//	assign data[bitCount[2:0]] = (state == S2) ? rx : 0;
+		read_en   = ((count-7) % 16 == 16);
+		count_en  = (state != S0);
+		out_en    = (state == S3);
+
+	end
+
+
 
 endmodule
 
