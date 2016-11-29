@@ -28,7 +28,7 @@ module testbench();
 	end
 endmodule
 
-module finalProject(input  logic clk,
+module final_project(input  logic clk,
 						  input  logic reset,
 						  input  logic rx,
 						  output logic [7:0] data);
@@ -56,7 +56,7 @@ module rx_state(input  logic clk,
 					 output logic [7:0] data);
 	
 	logic read_en, count_en, out_en;
-	logic [7:0] tempdata;
+	logic [7:0] tdata;
 	logic [7:0] count;
 	logic [2:0] bit_c;          // Counting from 0 - 8, one extra bit for overflow
 
@@ -73,7 +73,7 @@ module rx_state(input  logic clk,
 			state <= S0;
 			count <= 8'b0;
 			bit_c <= 3'b0;
-			tempdata <= 8'b0;
+			tdata <= 8'b0;
 			data <= 8'b0;
 
 		end else begin
