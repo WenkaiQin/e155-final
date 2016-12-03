@@ -1,18 +1,18 @@
-module uart_rx(input  logic clk,
-					input  logic creset,
-					input  logic reset,
-               input  logic rx,
-					output logic [7:0] data,
-					output logic test);
+// module uart_rx(input  logic clk,
+// 					input  logic creset,
+// 					input  logic reset,
+//                input  logic rx,
+// 					output logic [7:0] data,
+// 					output logic test);
 	
-	logic bck, sck, valid;
-	clk_gen cg0(clk, creset, bck, sck);
-	rx_state fsm0(sck, reset, rx, data);
+// 	logic bck, sck, valid;
+// 	clk_gen cg0(clk, creset, bck, sck);
+// 	rx_state fsm0(sck, reset, rx, data);
 			
-endmodule
+// endmodule
 
 
-module rx_state(input  logic clk,
+module uart_rx(input  logic clk,
 					 input  logic reset,
 					 input  logic rx,
 					 output logic [7:0] data);
@@ -78,23 +78,4 @@ module rx_state(input  logic clk,
 	assign out_en    = (state == S3);
 	assign bit_c	  = (count-8) / 16;
 
-endmodule
-
-module clk_gen(input  logic clk,
-					input  logic reset,
-					output logic bck,
-               output logic sck);
-					
-
-	logic [17:0] counter;
-	logic [17:0] increment = 18'b111111;
-	always_ff@(posedge clk)	
-		if(reset) counter <= 18'b0;
-		else counter <= counter + increment;
-//	assign bck = counter[17];
-//	assign sck = counter[13];
-	
-	assign bck = counter[4];
-	assign sck = counter[0];
-					
 endmodule
