@@ -55,7 +55,7 @@ module rx_state(input  logic clk,
 	end
 		
 	// Combination logic for state transition
-	always_comb begin
+	always_comb
 		case(state) 	
 			// If rx is low, go to next state
 			S0: if(!rx) nextstate = S1;
@@ -72,7 +72,6 @@ module rx_state(input  logic clk,
 			default: nextstate = S0;
 
 		endcase
-	end 
 	
 	assign read_en   = ((count-7) % 16 == 0);
 	assign count_en  = (state != S0);
