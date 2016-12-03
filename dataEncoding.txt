@@ -1,0 +1,16 @@
+tationary: 11
+forward: 01
+backward: 10
+
+
+data packet: 0000 LL RR, L = left wheel, R = right wheel
+
+left wheel: 3rd and 4th bit
+right wheel: 5th and 6th bit
+
+                            Binary                                              Decimal    ASCII
+robot stationary: 00 11 11 00 (No wheel should move)                                   60  ‘<'
+robot turning left: 00 01 10 00 (left wheel go backward, right wheel go forward)       24  ‘CAN'
+robot turning right: 00 10 01 00 (left wheel go forward, right wheel go backward)      36  ‘$'
+robot moving forward:     00 01 01 00                                                  20  ‘DC4'
+robot moving backward: 00 10 10 00                                                     40  ‘('
