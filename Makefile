@@ -5,7 +5,7 @@ LIBS = `pkg-config --libs opencv`
 
 all: positionCapture readInputCoordinate testZMQ
 
-test: testZMQ testUSB
+test: testZMQ
 
 positionCapture:
 	$(CC) $(CFLAGS) $(LIBS) positionCapture.cpp -o positionCapture
