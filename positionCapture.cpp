@@ -206,6 +206,18 @@ int main() {
         cout << "Green: " << greenX << ", " << greenY << endl;
         cout << "Orientation: " << ang.orientation << endl;
         // If keypress is esc for 30ms, exit the program
+        //
+        vector<int> compressionParams;
+        compressionParams.push_back(CV_IMWRITE_JPEG_QUALITY);
+        compressionParams.push_back(50);
+
+        imwrite("/tmp/video/img.jpg", frame, compressionParams);
+      //  vector<uchar> buf;
+      //  imencode(".jpg", frame, buf, vector<int>());
+      //  string content(buf.begin(), buf.end());
+
+      //  cout << content << endl;
+
         if (waitKey(30) == 27) {
             cout << "Exit the program" << endl;
             break;
