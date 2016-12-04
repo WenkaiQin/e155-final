@@ -23,11 +23,13 @@ module motor_driver(input  logic clk, reset,
 			state <= S0;
 			instr_d <= 2'b11;
 		end else begin
-			if(count == 199)
+			if(count >= 199)
 				count <= 12'b0;
 			else
 				count <= count + 12'b1;
+				
 			state <= nextstate;
+			
 			if(update_en)
 				instr_d <= instr;
 		end
@@ -49,7 +51,7 @@ module motor_driver(input  logic clk, reset,
 	assign pwm = (state == S0);
 endmodule
 
-module instr_dec(input  logic instr,
+module instr_dec(input  logic [1:0] instr,
 				 output logic [11:0] target_n);
 	always_comb
 		case(instr)
@@ -57,11 +59,13 @@ module instr_dec(input  logic instr,
 			// Back: PW = 1.0 ms, 154 cycles
 			// Stop: PW = 1.5 ms, 230 cycles
 			// Forward: PW = 2.0 ms, 307 cycles
-			//2'b10: target_n = 11'b10011010;
-			2'b10: target_n = 10;
-			//2'b11: target_n = 11'b11100110;
+			
+			/*2'b10: target_n = 11'b10011010;
+			2'b11: target_n = 11'b11100110;
+			2'b01: target_n = 11'b100110011;*/
+			
 			2'b10: target_n = 15;
-			//2'b01: target_n = 11'b100110011;
+			2'b10: target_n = 10;
 			2'b10: target_n = 20;
 			// Default stop.
 			//default: target_n = 11'b11100110;
