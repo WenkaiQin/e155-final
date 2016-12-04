@@ -17,10 +17,11 @@ module uart_rx(input  logic clk,
 					 input  logic rx,
 					 output logic [7:0] data);
 	
+	
 	logic read_en, count_en, out_en;
 	logic [7:0] tdata;
 	logic [7:0] count;
-	logic [2:0] bit_c;          // Counting from 0 - 8, one extra bit for overflow
+	logic [3:0] bit_c;          // Counting from 0 - 8, one extra bit for overflow
 
 	// State transition
 	// S0 : IDLE state, wait for RX to be low
@@ -44,7 +45,7 @@ module uart_rx(input  logic clk,
 				tdata <= {rx, tdata[7:1]};
 			    // tdata[bit_c] <= rx;
 			if(count_en)
-				count <= count + 1;
+				count <= count + 8'b1;
 			else
 				count <= 8'b0;
 
@@ -67,15 +68,16 @@ module uart_rx(input  logic clk,
 			S2: if(read_en && bit_c >= 7) nextstate = S3;
 			    else					  nextstate = S2;
 			
-			S3: nextstate = S0;
-
+			S3: if(read_en && bit_c >= 8) nextstate = S0;
+				 else								nextstate = S3;
+				 
 			default: nextstate = S0;
 
 		endcase
 	
-	assign read_en   = ((count-7) % 16 == 0);
+	assign read_en   = (((count-7) % 16 == 0) && count > 15);
 	assign count_en  = (state != S0);
 	assign out_en    = (state == S3);
 	assign bit_c	  = (count-8) / 16;
-
+	
 endmodule

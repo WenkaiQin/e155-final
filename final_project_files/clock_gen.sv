@@ -9,10 +9,10 @@ module clk_gen(input  logic clk,
 	always_ff@(posedge clk)	
 		if(reset) counter <= 18'b0;
 		else counter <= counter + increment;
-//	assign bck = counter[17];
-//	assign sck = counter[13];
+	assign bck = counter[17];
+	assign sck = counter[13];
 	
-	assign bck = counter[4];
-	assign sck = counter[0];
+//	assign bck = counter[4];
+//	assign sck = counter[0];
 					
 endmodule
