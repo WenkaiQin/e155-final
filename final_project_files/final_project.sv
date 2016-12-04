@@ -1,12 +1,14 @@
-module final_project(input  logic clk, creset, reset,
+module final_project(input  logic clk, /*creset, reset,*/
 							input  logic rx,
-							output logic [7:0] data);
-	logic sck, lpwn, rpwm;
-
+							output logic [7:0] data,
+							output logic lpwm, rpwm);
+	logic sck;
+	assign creset = 1'b0;
+	assign reset = 1'b0;
 	clk_gen clkgenerator(clk, creset, bck, sck);
-	uart_rx receiver(sck, reset, rx, data);
-	motor_driver ldriver(clk, reset, data[5:4], lpwn);
-	motor_driver rdriver(clk, reset, data[3:2], rpwn);
+	uart_rx receiver(sck, reset, rx, data, test1);
+	motor_driver ldriver(sck, reset, data[5:4], lpwm);
+	motor_driver rdriver(sck, reset, data[3:2], rpwm);
 	
 endmodule
 
