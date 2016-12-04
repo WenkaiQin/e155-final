@@ -1,7 +1,8 @@
+#include "writeToUSB.hpp"
 #include <iostream>
-#include <stdio.h>
+//#include <stdio.h>
 #include <math.h>
-#include <unistd.h>
+//#include <unistd.h>
 #include <string>
 #include <zmq.hpp>
 
@@ -16,7 +17,7 @@
 
 using namespace cv;
 using namespace std;
-
+// Define color global
 int lowH_b = 0;
 int highH_b = 255;
 int lowS_b = 0;
@@ -32,6 +33,8 @@ int lowV_g = 0;
 int highV_g = 255;
 
 const int deltaHSV = 20;
+// This flag is used to specify if a new coordinate has been issued and not reached
+bool newDest = false;
 
 struct MouseParam {
     Mat img;
@@ -95,7 +98,7 @@ void onMouse(int event, int x, int y, int flags, void* param) {
     info->color = event;
     info->pt = pt;
     if (event == 1) {
-        // if it's blue
+        // left click: it's blue
         lowH_b = H - deltaHSV;
         highH_b = H + deltaHSV;
         lowS_b = S - deltaHSV;
@@ -106,7 +109,7 @@ void onMouse(int event, int x, int y, int flags, void* param) {
         cout << H << " S: " << S << " V: " << V << endl;
     }
     else if (event == 2) {
-        // if it;s green
+        // right click: it's green
         lowH_g = H - deltaHSV;
         highH_g = H + deltaHSV;
         lowS_g = S - deltaHSV;
@@ -124,6 +127,8 @@ struct Angle {
 };
 
 Angle findAngle(Point pt1, Point pt2, Point dest) {
+    // pt2 is green center
+    // pt1 is blue center
     Angle ang;
     double rVec_x = (double) pt2.x - (double) pt1.x;
     double rVec_y = (double) pt2.y - (double) pt1.y;
@@ -144,47 +149,122 @@ Angle findAngle(Point pt1, Point pt2, Point dest) {
     double angle = acos(((rVec_x * dVec_x) + (rVec_y * dVec_y)) / 
         (rVecAbs * dVecAbs));
     ang.theta = angle;
-    if (Point(rVec_x, rVec_y).dot(Point(dVec_x, dVec_y)) > 0) {
-        ang.orientation = FACE_TOWARDS;
+
+    // Use cross product to find robot orientation relative to the destination
+    double crossProduct = rVec_x * dVec_y - rVec_y * dVec_x;
+    if (crossProduct > 0) {
+        ang.orientation = FACE_BACKWARDS;
     }
     else {
-        ang.orientation = FACE_BACKWARDS;
+        ang.orientation = FACE_TOWARDS;
     }
     return ang;
 }
 
-int main() {
+double findDistance(int dst_x, int dst_y, Point robot) {
+    double sumDistSq = pow((double)robot.x - (double)dst_x, 2) + pow((double)robot.y - (double)dst_y, 2);
+    return sqrt(sumDistSq);
+}
 
+void controller( Angle ang, double dist, int fd) {
+    double theta = ang.theta * 180 / PI;
+    // rotation control
+    char command = 60; // default to stop
+    if (ang.orientation == FACE_TOWARDS) {
+        // if robot angle is less then 70
+        if (theta < 70) {
+            // Turn left
+            command = 24;
+            writeByte(command, fd);
+        }
+        else if (theta > 110) {
+            // Turn right
+            command = 36;
+            writeByte(command, fd);
+        }
+        else {
+            if (dist < 10) {
+                // Reached destination, keep still
+                command = 60;
+                writeByte(command, fd);
+            }
+            else {
+                // Move Forward
+                command = 20;
+                writeByte(command, fd);
+            }
+        }
+    }
+    else {
+        if (dist < 10) {
+            // Reached destination, keep still
+            command = 60;
+            writeByte(command, fd);
+        }
+        else {
+            if (theta < 70) {
+                // Turn left
+                command = 24;
+                writeByte(command, fd);
+            }
+            else if (theta > 110) {
+                // Turn right
+                command = 36;
+                writeByte(command, fd);
+            }
+            else {
+                // Move Backward
+                command = 40;
+                writeByte(command, fd);
+            }
+        }
+    }
+}
+
+int main() {
+    // Setup serial usb
+    int fd = setupUSB();
+    if (fd < 0) {
+        cout << "Invalid USB-XBee connection" << endl;
+    }
+    // Setup camera
     VideoCapture cap(0);
     if (!cap.isOpened()) {
         cout << "Cannot open the video cam" << endl;
         return -1;
     }
-    
+    // Setup tcp socket to use message queue for IPC 
     zmq::context_t context(1);
     zmq::socket_t socket(context, ZMQ_REP);
     socket.bind("tcp://*:5555");
-    string destPos;
+    string destPosBuf;
+    // Destionation coordinate
+    int dst_x = 0;
+    int dst_y = 0;
     
+    // Setup mouse callback and window display
     MouseParam param;
     Mat frame, imgThresholdedBlue, imgThresholdedGreen;
     int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
     int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
     namedWindow("Video_Capture", CV_WINDOW_AUTOSIZE); 
     setMouseCallback("Video_Capture", onMouse, &param);
-  //  namedWindow("Thresholded_Capture", CV_WINDOW_AUTOSIZE);
 
     while (true) {
         zmq::message_t request;
-        
-        try {
+       
+        // Try to receive any message sent from the client side
+       try {
             socket.recv(&request, ZMQ_DONTWAIT);
-            destPos = string(static_cast<char*>(request.data()), request.size());
-            cout << destPos << endl;
+            destPosBuf = string(static_cast<char*>(request.data()), request.size());
             zmq::message_t reply(3);
             memcpy(reply.data(), "Rec", 3);
+            // Send reply to confirm with client
             socket.send(reply);
+            sscanf(destPosBuf.c_str(), "x-pos=%d&y-pos=%d", &dst_x, &dst_y);
+            // cout << destPosBuf << endl;
         }
+        // If no message, deal with the error and continue
         catch (zmq::error_t e) {}
 
         bool frameLoaded = cap.read(frame);
@@ -202,44 +282,45 @@ int main() {
         blueX = blueCenter.x;
         blueY = blueCenter.y;
         greenX = greenCenter.x;
-        greenY = greenCenter.y;
-        
-        Point test = Point(0, 0);
+        greenY = greenCenter.y; 
 
-        Angle ang = findAngle(blueCenter, greenCenter, test);
-        double angle = ang.theta * 180.0 / 3.14159;
-        cout << "The angle is: ";
-        cout << angle << endl;
-
+        // Find destination point and robot pos
+        Point dst = Point(dst_x, dst_y);
         Point mid = Point((greenCenter.x + blueCenter.x)/2, (greenCenter.y + blueCenter.y)/2);
+        // Find distance between robot and destination
+        double dist = findDistance(dst_x, dst_y, mid);
+        // Find angle between robot vector and destination vector
+        Angle ang = findAngle(blueCenter, greenCenter, dst);
+        double angle = ang.theta * 180.0 / PI;
+        // Finally, time to send control signal...
+        controller(ang, dist, fd);
 
         line(frame, blueCenter, greenCenter, Scalar(165, 206, 94), 1, 8, 0);
-        line(frame, mid, test, Scalar(255, 255, 0), 1, 8, 0);
- 
-        //imshow("Video_Capture", frame);
+        line(frame, mid, dst, Scalar(255, 255, 0), 1, 8, 0); 
+        imshow("Video_Capture", frame);
         //imshow("Thresholded_Blue", imgThresholdedBlue); // means blue
         //imshow("Thresholded_Green", imgThresholdedGreen);
-        //cout << "Blue: " << blueX << ", " << blueY << endl;
-        //cout << "Green: " << greenX << ", " << greenY << endl;
-        //cout << "Orientation: " << ang.orientation << endl;
-        // If keypress is esc for 30ms, exit the program
-        //
+        cout << "The angle is: ";
+        cout << angle << endl;
+        cout << "Blue: " << blueX << ", " << blueY << endl;
+        cout << "Green: " << greenX << ", " << greenY << endl;
+        cout << "Orientation: " << ang.orientation << endl;
+
         vector<int> compressionParams;
         compressionParams.push_back(CV_IMWRITE_JPEG_QUALITY);
         compressionParams.push_back(50);
-
+        // Store the temp jpg file for video streaming
         imwrite("/tmp/video/img.jpg", frame, compressionParams);
-      //  vector<uchar> buf;
-      //  imencode(".jpg", frame, buf, vector<int>());
-      //  string content(buf.begin(), buf.end());
-
-      //  cout << content << endl;
-
+        
+        // If keypress is esc for >30ms, exit the program
+        //
         if (waitKey(30) == 27) {
             cout << "Exit the program" << endl;
             break;
         }
     }
+    // Clean up..
+    tearDownUSB(fd);
     return 0;
 }
 

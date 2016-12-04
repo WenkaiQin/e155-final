@@ -20,6 +20,5 @@ testZMQ:
 
 clean:
 	rm positionCapture readInputCoordinate testZMQ
-	rm *o
 
 
