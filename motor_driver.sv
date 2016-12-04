@@ -21,28 +21,29 @@ module motor_driver(input  logic clk, reset,
 		if(reset) begin
 			count <= 12'b0;
 			state <= S0;
-			instr <= 2'b11;
+			instr_d <= 2'b11;
 		end else begin
 			if(count == 3071)
 				count <= 12'b0;
 			else
 				count <= count + 12'b1;
-			state <= nextstate
+			state <= nextstate;
 			if(update_en)
 				instr_d <= instr;
 		end
+	end
 
 	always_comb
 		case(state)
 			// If we reached the target, transition.
-			S0: if(count >= target - 1) nextstate = S1;
+			S0: if(count >= target_n - 1) nextstate = S1;
 				else					nextstate = S0;
 			
 			S1: if(count >= 3071) nextstate = S0;
 				else			  nextstate = S1;
 
 			default: nextstate = S0;
-
+		endcase
 endmodule
 
 module instr_dec(input  logic instr,
@@ -60,5 +61,3 @@ module instr_dec(input  logic instr,
 			default: target_n = 11'b11100110;
 		endcase
 endmodule
-
-	
