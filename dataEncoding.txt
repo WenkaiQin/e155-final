@@ -1,12 +1,12 @@
-tationary: 11
+stationary: 11
 forward: 01
 backward: 10
 
 
-data packet: 0000 LL RR, L = left wheel, R = right wheel
+data packet: 00 LL RR 00, L = left wheel, R = right wheel
 
-left wheel: 3rd and 4th bit
-right wheel: 5th and 6th bit
+left wheel: 5th and 6th bit
+right wheel: 3rd and 4th bit
 
                             Binary                                              Decimal    ASCII
 robot stationary: 00 11 11 00 (No wheel should move)                                   60  ‘<'
