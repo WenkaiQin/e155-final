@@ -1,6 +1,9 @@
 #include <iostream>
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
+#include <string>
+#include <zmq.hpp>
 
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
@@ -158,8 +161,10 @@ int main() {
         return -1;
     }
     
-    Point bluePos;
-    Point greenPos;
+    zmq::context_t context(1);
+    zmq::socket_t socket(context, ZMQ_REP);
+    socket.bind("tcp://*:5555");
+    string destPos;
     
     MouseParam param;
     Mat frame, imgThresholdedBlue, imgThresholdedGreen;
@@ -170,6 +175,18 @@ int main() {
   //  namedWindow("Thresholded_Capture", CV_WINDOW_AUTOSIZE);
 
     while (true) {
+        zmq::message_t request;
+        
+        try {
+            socket.recv(&request, ZMQ_DONTWAIT);
+            destPos = string(static_cast<char*>(request.data()), request.size());
+            cout << destPos << endl;
+            zmq::message_t reply(3);
+            memcpy(reply.data(), "Rec", 3);
+            socket.send(reply);
+        }
+        catch (zmq::error_t e) {}
+
         bool frameLoaded = cap.read(frame);
         if (!frameLoaded) {
             cout << "Frame is not loaded correctly" << endl;
@@ -199,12 +216,12 @@ int main() {
         line(frame, blueCenter, greenCenter, Scalar(165, 206, 94), 1, 8, 0);
         line(frame, mid, test, Scalar(255, 255, 0), 1, 8, 0);
  
-        imshow("Video_Capture", frame);
-        imshow("Thresholded_Blue", imgThresholdedBlue); // means blue
-        imshow("Thresholded_Green", imgThresholdedGreen);
-        cout << "Blue: " << blueX << ", " << blueY << endl;
-        cout << "Green: " << greenX << ", " << greenY << endl;
-        cout << "Orientation: " << ang.orientation << endl;
+        //imshow("Video_Capture", frame);
+        //imshow("Thresholded_Blue", imgThresholdedBlue); // means blue
+        //imshow("Thresholded_Green", imgThresholdedGreen);
+        //cout << "Blue: " << blueX << ", " << blueY << endl;
+        //cout << "Green: " << greenX << ", " << greenY << endl;
+        //cout << "Orientation: " << ang.orientation << endl;
         // If keypress is esc for 30ms, exit the program
         //
         vector<int> compressionParams;
