@@ -167,6 +167,11 @@ double findDistance(int dst_x, int dst_y, Point robot) {
 }
 
 void controller( Angle ang, double dist, int fd) {
+    if (!newDest) {
+        // If no new Dest is given by the coordinate, just exit the controller.
+        return;
+    }
+
     double theta = ang.theta * 180 / PI;
     // rotation control
     char command = 60; // default to stop
@@ -185,6 +190,7 @@ void controller( Angle ang, double dist, int fd) {
         else {
             if (dist < 10) {
                 // Reached destination, keep still
+                newDest = false;
                 command = 60;
                 writeByte(command, fd);
             }
@@ -198,6 +204,7 @@ void controller( Angle ang, double dist, int fd) {
     else {
         if (dist < 10) {
             // Reached destination, keep still
+            newDest = false;
             command = 60;
             writeByte(command, fd);
         }
@@ -219,6 +226,8 @@ void controller( Angle ang, double dist, int fd) {
             }
         }
     }
+
+    cout << "The command is: " << command << endl;
 }
 
 int main() {
@@ -262,6 +271,8 @@ int main() {
             // Send reply to confirm with client
             socket.send(reply);
             sscanf(destPosBuf.c_str(), "x-pos=%d&y-pos=%d", &dst_x, &dst_y);
+            // Set the new destination to be true, enter the controller
+            newDest = true;
             // cout << destPosBuf << endl;
         }
         // If no message, deal with the error and continue
