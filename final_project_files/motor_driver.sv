@@ -23,7 +23,11 @@ module motor_driver(input  logic clk, reset,
 			state <= S0;
 			instr_d <= 2'b11;
 		end else begin
+<<<<<<< HEAD
 			if(count >= 3071)
+=======
+			if(count >= 199)
+>>>>>>> origin/master
 				count <= 12'b0;
 			else
 				count <= count + 12'b1;
@@ -41,7 +45,11 @@ module motor_driver(input  logic clk, reset,
 			S0: if(count >= target_n - 1) nextstate = S1;
 				else					nextstate = S0;
 			
+<<<<<<< HEAD
 			S1: if(count >= 3071) nextstate = S0;
+=======
+			S1: if(count >= 199) nextstate = S0;
+>>>>>>> origin/master
 				else			  nextstate = S1;
 
 			default: nextstate = S0;
@@ -49,9 +57,12 @@ module motor_driver(input  logic clk, reset,
 		
 	assign update_en = (state == S1);
 	assign pwm = (state == S0);
+<<<<<<< HEAD
 	
 	//assign instr_d = (state == S1) ? instr : instr_d;
 	
+=======
+>>>>>>> origin/master
 endmodule
 
 module instr_dec(input  logic [1:0] instr,
@@ -63,6 +74,7 @@ module instr_dec(input  logic [1:0] instr,
 			// Stop: PW = 1.5 ms, 230 cycles
 			// Forward: PW = 2.0 ms, 307 cycles
 			
+<<<<<<< HEAD
 			2'b10: target_n = 11'b10011010;
 			2'b11: target_n = 11'b11100110;
 			2'b01: target_n = 11'b100110011;
@@ -75,3 +87,17 @@ module instr_dec(input  logic [1:0] instr,
 			// default: target_n = 15;
 		endcase
 endmodule
+=======
+			/*2'b10: target_n = 11'b10011010;
+			2'b11: target_n = 11'b11100110;
+			2'b01: target_n = 11'b100110011;*/
+			
+			2'b10: target_n = 15;
+			2'b10: target_n = 10;
+			2'b10: target_n = 20;
+			// Default stop.
+			//default: target_n = 11'b11100110;
+			default: target_n = 15;
+		endcase
+endmodule
+>>>>>>> origin/master

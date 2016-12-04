@@ -8,7 +8,7 @@ all: positionCapture readInputCoordinate testZMQ
 test: testZMQ
 
 positionCapture:
-	$(CC) $(CFLAGS) $(LIBS) positionCapture.cpp -o positionCapture
+	$(CC) -Wall $(CFLAGS) $(LIBS) positionCapture.cpp -lzmq -o positionCapture
 
 readInputCoordinate:
 	$(CCC) -Wall -g readInputCoordinate.c -lzmq -o readInputCoordinate
@@ -20,6 +20,5 @@ testZMQ:
 
 clean:
 	rm positionCapture readInputCoordinate testZMQ
-	rm *o
 
 
