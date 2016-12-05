@@ -15,14 +15,7 @@
 module uart_rx(input  logic clk,
 					 input  logic reset,
 					 input  logic rx,
-<<<<<<< HEAD
 					 output logic [7:0] data);
-	
-=======
-					 output logic [7:0] data,
-					 output logic test);
-	
->>>>>>> origin/master
 	
 	logic read_en, count_en, out_en;
 	logic [7:0] tdata;
@@ -74,13 +67,9 @@ module uart_rx(input  logic clk,
 			S2: if(read_en && bit_c >= 7) nextstate = S3;
 			    else					  nextstate = S2;
 			
-<<<<<<< HEAD
 			S3: if(read_en && bit_c >= 8) nextstate = S0;
 				 else								nextstate = S3;
-=======
-			S3: if(read_en && bit_c >= 8) nextstate = S0;
-				 else								nextstate = S3;
->>>>>>> origin/master
+
 				 
 			default: nextstate = S0;
 
@@ -89,14 +78,7 @@ module uart_rx(input  logic clk,
 	assign read_en   = (((count-7) % 16 == 0) && count > 15);
 	assign count_en  = (state != S0);
 	assign out_en    = (state == S3);
-<<<<<<< HEAD
 	assign bit_c	  = (count-8) / 16;
 	
 endmodule
-=======
-	assign bit_c	  = (count-8) / 16;
 
-	assign test = count_en;
-	
-endmodule
->>>>>>> origin/master
