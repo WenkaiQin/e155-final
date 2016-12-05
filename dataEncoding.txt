@@ -8,9 +8,19 @@ data packet: 00 LL RR 00, L = left wheel, R = right wheel
 left wheel: 5th and 6th bit
 right wheel: 3rd and 4th bit
 
-                            Binary                                              Decimal    ASCII
-robot stationary: 00 11 11 00 (No wheel should move)                                   60  ‘<'
-robot turning left: 00 01 10 00 (left wheel go backward, right wheel go forward)       24  ‘CAN'
-robot turning right: 00 10 01 00 (left wheel go forward, right wheel go backward)      36  ‘$'
-robot moving forward:     00 01 01 00                                                  20  ‘DC4'
-robot moving backward: 00 10 10 00                                                     40  ‘('
+//** OLD **//
+			Binary								Decimal	ASCII
+robot stationary:	00 11 11 00 (No wheel should move)				60	‘<'
+robot turning left:	00 01 10 00 (left backward, right forward)			24	‘CAN'
+robot turning right:	00 10 01 00 (left forward, right backward)			36	‘$'
+robot moving forward:	00 01 01 00							20	‘DC4'
+robot moving backward:	00 10 10 00							40	‘('
+
+
+//** NEW **//
+			Binary								Decimal	ASCII	Hex
+robot stationary:	00 11 11 00							60	‘<‘	3C
+robot turning right:	00 01 01 00							20	‘DC4’	14
+robot turning left:	00 10 10 00							40	‘(‘	28
+robot moving forward:	00 01 10 00							24	‘CAN’	18
+robot moving backward:	00 10 01 00							36	‘$’	24
