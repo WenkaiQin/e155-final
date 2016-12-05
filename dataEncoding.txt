@@ -18,9 +18,9 @@ robot moving backward:	00 10 10 00							40	‘('
 
 
 //** NEW **//
-			Binary								Decimal	ASCII
-robot stationary:	00 11 11 00							60	‘<‘
-robot turning left:	00 01 01 00							20	‘DC4’
-robot turning right:	00 10 10 00							40	‘(‘
-robot moving forward:	00 01 10 00							24	‘CAN’
-robot moving backward:	00 10 01 00							36	‘$’
+			Binary								Decimal	ASCII	Hex
+robot stationary:	00 11 11 00							60	‘<‘	3C
+robot turning right:	00 01 01 00							20	‘DC4’	14
+robot turning left:	00 10 10 00							40	‘(‘	28
+robot moving forward:	00 01 10 00							24	‘CAN’	18
+robot moving backward:	00 10 01 00							36	‘$’	24
