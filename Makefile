@@ -5,20 +5,20 @@ LIBS = `pkg-config --libs opencv`
 
 all: positionCapture readInputCoordinate testZMQ
 
-test: testZMQ
+test: testZMQ testUSB
 
 positionCapture:
-	$(CC) -Wall $(CFLAGS) $(LIBS) positionCapture.cpp -lzmq -o positionCapture
+	$(CC)  -Wall $(CFLAGS) $(LIBS) positionCapture.cpp -lzmq -o positionCapture
 
 readInputCoordinate:
 	$(CCC) -Wall -g readInputCoordinate.c -lzmq -o readInputCoordinate
 
 testZMQ:
 	$(CC) -Wall -g testZMQ.cpp -lzmq -o testZMQ
-#writeToUSB:
-#	$(CC) $(CFLAGS) writeToUSB.cpp -o writeToUSB
+testUSB:
+	$(CC) -Wall -g testUSB.cpp -o testUSB
 
 clean:
-	rm positionCapture readInputCoordinate testZMQ
+	rm positionCapture readInputCoordinate testZMQ testUSB
 
 

@@ -95,8 +95,6 @@ void onMouse(int event, int x, int y, int flags, void* param) {
     H = (int) pixel[0];
     S = (int) pixel[1];
     V = (int) pixel[2];
-    info->color = event;
-    info->pt = pt;
     if (event == 1) {
         // left click: it's blue
         lowH_b = H - deltaHSV;
@@ -122,8 +120,8 @@ void onMouse(int event, int x, int y, int flags, void* param) {
 }
 
 struct Angle {
-    double theta;
     int orientation;
+    double theta;
 };
 
 Angle findAngle(Point pt1, Point pt2, Point dest) {
@@ -171,63 +169,55 @@ void controller( Angle ang, double dist, int fd) {
         // If no new Dest is given by the coordinate, just exit the controller.
         return;
     }
-
     double theta = ang.theta * 180 / PI;
     // rotation control
     char command = 60; // default to stop
+    
+    if (dist < 10) {
+        newDest = false;
+        command = 60;
+        writeByte(&command, fd);
+        return;
+    }
+
     if (ang.orientation == FACE_TOWARDS) {
         // if robot angle is less then 70
         if (theta < 70) {
             // Turn left
-            command = 24;
-            writeByte(command, fd);
+            command = 40;
+            writeByte(&command, fd);
         }
         else if (theta > 110) {
             // Turn right
-            command = 36;
-            writeByte(command, fd);
+            command = 20;
+            writeByte(&command, fd);
         }
         else {
-            if (dist < 10) {
-                // Reached destination, keep still
-                newDest = false;
-                command = 60;
-                writeByte(command, fd);
-            }
-            else {
-                // Move Forward
-                command = 20;
-                writeByte(command, fd);
-            }
+            // Move Forward
+            command = 24;
+            writeByte(&command, fd);
         }
     }
     else {
-        if (dist < 10) {
-            // Reached destination, keep still
-            newDest = false;
-            command = 60;
-            writeByte(command, fd);
+        if (theta < 70) {
+            // Turn left
+            command = 40;
+            writeByte(&command, fd);
+        }
+        else if (theta > 110) {
+            // Turn right
+            command = 20;
+            writeByte(&command, fd);
         }
         else {
-            if (theta < 70) {
-                // Turn left
-                command = 24;
-                writeByte(command, fd);
-            }
-            else if (theta > 110) {
-                // Turn right
-                command = 36;
-                writeByte(command, fd);
-            }
-            else {
-                // Move Backward
-                command = 40;
-                writeByte(command, fd);
-            }
+            // Move Backward
+            command = 36;
+            writeByte(&command, fd);
         }
     }
-
-    cout << "The command is: " << command << endl;
+    cout <<"The distance is: " << dist << endl;
+    cout <<"The angle is: " << theta << endl;
+    printf("The command is: %d\n", command);
 }
 
 int main() {
@@ -254,16 +244,15 @@ int main() {
     // Setup mouse callback and window display
     MouseParam param;
     Mat frame, imgThresholdedBlue, imgThresholdedGreen;
-    int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
-    int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
+    
     namedWindow("Video_Capture", CV_WINDOW_AUTOSIZE); 
     setMouseCallback("Video_Capture", onMouse, &param);
+    
+    zmq::message_t request;
 
     while (true) {
-        zmq::message_t request;
-       
         // Try to receive any message sent from the client side
-       try {
+        try {
             socket.recv(&request, ZMQ_DONTWAIT);
             destPosBuf = string(static_cast<char*>(request.data()), request.size());
             zmq::message_t reply(3);
@@ -283,17 +272,12 @@ int main() {
             cout << "Frame is not loaded correctly" << endl;
             break;
         }
-        param.img = frame;
         imgThresholdedBlue = thresholdImage(frame, 1);
         imgThresholdedGreen  = thresholdImage(frame, 2);   
-        double blueX, blueY, greenX, greenY;
 
+        // Find the center for each color tag
         Point blueCenter = findColorCenter(imgThresholdedBlue);
         Point greenCenter = findColorCenter(imgThresholdedGreen);
-        blueX = blueCenter.x;
-        blueY = blueCenter.y;
-        greenX = greenCenter.x;
-        greenY = greenCenter.y; 
 
         // Find destination point and robot pos
         Point dst = Point(dst_x, dst_y);
@@ -302,24 +286,26 @@ int main() {
         double dist = findDistance(dst_x, dst_y, mid);
         // Find angle between robot vector and destination vector
         Angle ang = findAngle(blueCenter, greenCenter, dst);
-        double angle = ang.theta * 180.0 / PI;
+        // double angle = ang.theta * 180.0 / PI;
         // Finally, time to send control signal...
         controller(ang, dist, fd);
 
         line(frame, blueCenter, greenCenter, Scalar(165, 206, 94), 1, 8, 0);
-        line(frame, mid, dst, Scalar(255, 255, 0), 1, 8, 0); 
+        if (newDest) {
+            line(frame, mid, dst, Scalar(255, 255, 0), 1, 8, 0); 
+        }
         imshow("Video_Capture", frame);
         //imshow("Thresholded_Blue", imgThresholdedBlue); // means blue
         //imshow("Thresholded_Green", imgThresholdedGreen);
-        cout << "The angle is: ";
-        cout << angle << endl;
-        cout << "Blue: " << blueX << ", " << blueY << endl;
-        cout << "Green: " << greenX << ", " << greenY << endl;
-        cout << "Orientation: " << ang.orientation << endl;
+        //cout << "The angle is: ";
+        //cout << angle << endl;
+        //cout << "Blue: " << blueX << ", " << blueY << endl;
+        //cout << "Green: " << greenX << ", " << greenY << endl;
+        //cout << "Orientation: " << ang.orientation << endl;
 
         vector<int> compressionParams;
         compressionParams.push_back(CV_IMWRITE_JPEG_QUALITY);
-        compressionParams.push_back(50);
+        compressionParams.push_back(5);
         // Store the temp jpg file for video streaming
         imwrite("/tmp/video/img.jpg", frame, compressionParams);
         
@@ -329,6 +315,7 @@ int main() {
             cout << "Exit the program" << endl;
             break;
         }
+        
     }
     // Clean up..
     tearDownUSB(fd);

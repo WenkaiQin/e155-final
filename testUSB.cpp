@@ -6,10 +6,17 @@ int main() {
     int fd = setupUSB();
     int i = 0;
     pioInit();
-    while ( i < 8) {
+    while (true) {
         delayMillis(500);
-        writeByte(i, fd);
+        char c = '<';
+        writeByte(&c, fd);
+        delayMillis(500);
+        c = 24;
+        writeByte(&c, fd);
         ++i;
+        if (i == 16) {
+            i = 0;
+        }
     }
     tearDownUSB(fd);
     return 0;

@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include "EasyPIO.h"
 
 int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -40,6 +41,7 @@ int setupUSB() {
         return -1;
     }
     set_interface_attribs(fd, B9600);
+    pioInit();
     return fd;
 }
 
@@ -48,10 +50,14 @@ void tearDownUSB(int fd) {
     return;
 }
 
-void writeByte(int b, int fd) {
+void writeByte(char *b, int fd) {
     char byte[1];
-    sprintf(byte, "%d", b);
-    write(fd, byte, 1);
+    char startByte[1];
+    char stopByte[1];
+
+    write(fd, b, 1);
+
+//    printf("Bytes sending: %d\n", byte); 
     tcdrain(fd);
     return;    
 } 
