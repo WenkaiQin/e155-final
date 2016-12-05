@@ -173,7 +173,7 @@ void controller( Angle ang, double dist, int fd) {
     // rotation control
     char command = 60; // default to stop
     
-    if (dist < 10) {
+    if (dist < 50) {
         newDest = false;
         command = 60;
         writeByte(&command, fd);
@@ -182,14 +182,14 @@ void controller( Angle ang, double dist, int fd) {
 
     if (ang.orientation == FACE_TOWARDS) {
         // if robot angle is less then 70
-        if (theta < 70) {
-            // Turn left
-            command = 40;
-            writeByte(&command, fd);
-        }
-        else if (theta > 110) {
+        if (theta < 80) {
             // Turn right
             command = 20;
+            writeByte(&command, fd);
+        }
+        else if (theta > 100) {
+            // Turn left
+            command = 40;
             writeByte(&command, fd);
         }
         else {
@@ -199,14 +199,14 @@ void controller( Angle ang, double dist, int fd) {
         }
     }
     else {
-        if (theta < 70) {
+        if (theta < 80) {
             // Turn left
-            command = 40;
+            command = 20;
             writeByte(&command, fd);
         }
-        else if (theta > 110) {
+        else if (theta > 100) {
             // Turn right
-            command = 20;
+            command = 40;
             writeByte(&command, fd);
         }
         else {
@@ -317,7 +317,7 @@ int main() {
             cout << "Exit the program" << endl;
             break;
         }
-        
+        //delayMillis(500);
     }
     // Clean up..
     tearDownUSB(fd);

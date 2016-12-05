@@ -52,11 +52,11 @@ void tearDownUSB(int fd) {
 
 void writeByte(char *b, int fd) {
     char byte[1];
-    char startByte[1];
-    char stopByte[1];
+    char stop = 60;
 
     write(fd, b, 1);
-
+    delayMillis(25);
+    write(fd, &stop, 1);
 //    printf("Bytes sending: %d\n", byte); 
     tcdrain(fd);
     return;    
