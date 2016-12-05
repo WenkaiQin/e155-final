@@ -272,6 +272,8 @@ int main() {
             cout << "Frame is not loaded correctly" << endl;
             break;
         }
+
+        param.img = frame;
         imgThresholdedBlue = thresholdImage(frame, 1);
         imgThresholdedGreen  = thresholdImage(frame, 2);   
 
