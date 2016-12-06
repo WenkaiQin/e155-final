@@ -5,7 +5,7 @@
 //#include <unistd.h>
 #include <string>
 #include <zmq.hpp>
-
+#include <list>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/objdetect/objdetect.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -32,9 +32,14 @@ int highS_g = 255;
 int lowV_g = 0;
 int highV_g = 255;
 
-const int deltaHSV = 20;
+const int deltaHSV = 30;
 // This flag is used to specify if a new coordinate has been issued and not reached
 bool newDest = false;
+const char STATIONARY = 60;
+const char TURN_RIGHT = 20;
+const char TURN_LEFT = 40;
+const char MOVE_FORWARD = 24;
+const char MOVE_BACKWARD = 36;
 
 struct MouseParam {
     Mat img;
@@ -42,7 +47,7 @@ struct MouseParam {
     int color;
 };
 
-Point findColorCenter(Mat imgThresholded) {
+Point findColorCenter(Mat &imgThresholded) {
     vector< vector<Point> > contours;
     vector<Vec4i> hierarchy;
 
@@ -79,15 +84,14 @@ Mat thresholdImage(Mat frame, int color) {
         inRange(frameHSV, Scalar(lowH_g, lowS_g, lowV_g), Scalar(highH_g, highS_g, highV_g), imgThresholded);
     }
 
-   // dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
-   // erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+ //   dilate(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
+ //   erode(imgThresholded, imgThresholded, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)));
     return imgThresholded;
 }
 
 void onMouse(int event, int x, int y, int flags, void* param) {
 
     Mat frameHSV;
-    Point pt = Point(x, y);
     MouseParam* info = (MouseParam*) param;
     int H, S, V;
     cvtColor(info->img, frameHSV, COLOR_BGR2HSV);
@@ -131,14 +135,14 @@ Angle findAngle(Point pt1, Point pt2, Point dest) {
     double rVec_x = (double) pt2.x - (double) pt1.x;
     double rVec_y = (double) pt2.y - (double) pt1.y;
 
-    Point mid = Point((pt2.x + pt1.x)/2, (pt2.x + pt1.x)/2);
+    Point mid = Point((pt2.x + pt1.x)/2, (pt2.y + pt1.y)/2);
 
     double dVec_x = (double) mid.x - dest.x;
     double dVec_y = (double) mid.y - dest.y;
 
     double rVecAbs = sqrt(pow(rVec_x,2) + pow(rVec_y,2));
     double dVecAbs = sqrt(pow(dVec_x,2) + pow(dVec_y,2));
-    if (rVecAbs*dVecAbs == 0) {
+    if (rVecAbs == 0 || dVecAbs == 0) {
         cout << "Divided by zero!" << endl;
         ang.theta = 0;
         ang.orientation = FACE_TOWARDS;
@@ -146,11 +150,12 @@ Angle findAngle(Point pt1, Point pt2, Point dest) {
     }
     double angle = acos(((rVec_x * dVec_x) + (rVec_y * dVec_y)) / 
         (rVecAbs * dVecAbs));
+   // double angle = atan2( (rVec_x * dVec_y) - (rVec_y * dVec_x) ,((rVec_x * dVec_x) + (rVec_y * dVec_y)));
     ang.theta = angle;
 
     // Use cross product to find robot orientation relative to the destination
     double crossProduct = rVec_x * dVec_y - rVec_y * dVec_x;
-    if (crossProduct > 0) {
+    if (crossProduct >= 0) {
         ang.orientation = FACE_BACKWARDS;
     }
     else {
@@ -164,10 +169,18 @@ double findDistance(int dst_x, int dst_y, Point robot) {
     return sqrt(sumDistSq);
 }
 
-void controller( Angle ang, double dist, int fd) {
+void turn(int fd, const char* c) {
+    // Turn for 25 ms
+    writeByte(c, fd);
+    delayMillis(5);
+    // And then stop
+    writeByte(&STATIONARY, fd);
+}
+
+bool controller( Angle ang, double dist, int fd, list<bool> &thetaCheck) {
     if (!newDest) {
         // If no new Dest is given by the coordinate, just exit the controller.
-        return;
+        return false;
     }
     double theta = ang.theta * 180 / PI;
     // rotation control
@@ -175,49 +188,72 @@ void controller( Angle ang, double dist, int fd) {
     
     if (dist < 50) {
         newDest = false;
-        command = 60;
-        writeByte(&command, fd);
-        return;
+        writeByte(&STATIONARY, fd);
+    cout <<"The distance is: " << dist << endl;
+    cout <<"The angle is: " << theta << endl;
+    printf("The command is: %d\n", command);
+        return false;
+    }
+
+    bool flag = false;
+    for (list<bool>::iterator it = thetaCheck.begin(); it != thetaCheck.end(); ++it) {
+        flag = *it;
+        if (!flag) {
+            break;
+        }
     }
 
     if (ang.orientation == FACE_TOWARDS) {
         // if robot angle is less then 70
-        if (theta < 80) {
+        if (theta < 75) {
             // Turn right
-            command = 20;
-            writeByte(&command, fd);
+            // ommand = 20;
+            // writeByte(&TURN_RIGHT, fd);
+            turn(fd, &TURN_RIGHT);
         }
-        else if (theta > 100) {
+        else if (theta > 105) {
             // Turn left
-            command = 40;
-            writeByte(&command, fd);
+            // command = 40;
+            // writeByte(&TURN_LEFT, fd);
+            turn(fd, &TURN_LEFT);
         }
         else {
             // Move Forward
-            command = 24;
-            writeByte(&command, fd);
+            if (flag) {
+                writeByte(&MOVE_FORWARD, fd);
+                delayMillis(20);
+                writeByte(&STATIONARY, fd);
+            }
+            // Otherwise, don't do anything.       
+            cout <<"The distance is: " << dist << endl;
+            cout <<"The angle is: " << theta << endl;
+            printf("The command is: %d\n", command);
+            return true;
         }
     }
     else {
-        if (theta < 80) {
-            // Turn left
-            command = 20;
-            writeByte(&command, fd);
-        }
-        else if (theta > 100) {
+        if (theta <= 90) {
             // Turn right
-            command = 40;
-            writeByte(&command, fd);
+            // command = 20;
+            // writeByte(&TURN_RIGHT, fd);
+            turn(fd, &TURN_RIGHT);
+        }
+        else if (theta > 90) {
+            // Turn left
+            // command = 40;
+            // writeByte(&TURN_LEFT, fd);
+            turn(fd, &TURN_LEFT);
         }
         else {
             // Move Backward
-            command = 36;
-            writeByte(&command, fd);
+            // command = 36;
+            // writeByte(&MOVE_BACKWARD, fd);
         }
     }
     cout <<"The distance is: " << dist << endl;
     cout <<"The angle is: " << theta << endl;
     printf("The command is: %d\n", command);
+    return false;
 }
 
 int main() {
@@ -236,6 +272,7 @@ int main() {
     zmq::context_t context(1);
     zmq::socket_t socket(context, ZMQ_REP);
     socket.bind("tcp://*:5555");
+    zmq::message_t request;
     string destPosBuf;
     // Destionation coordinate
     int dst_x = 0;
@@ -248,7 +285,7 @@ int main() {
     namedWindow("Video_Capture", CV_WINDOW_AUTOSIZE); 
     setMouseCallback("Video_Capture", onMouse, &param);
     
-    zmq::message_t request;
+    list<bool> thetaCheck(3, false);   
 
     while (true) {
         // Try to receive any message sent from the client side
@@ -288,9 +325,11 @@ int main() {
         double dist = findDistance(dst_x, dst_y, mid);
         // Find angle between robot vector and destination vector
         Angle ang = findAngle(blueCenter, greenCenter, dst);
-        // double angle = ang.theta * 180.0 / PI;
+     //   double angle = ang.theta * 180.0 / PI;
         // Finally, time to send control signal...
-        controller(ang, dist, fd);
+        bool angleCheck = controller(ang, dist, fd, thetaCheck);
+        thetaCheck.push_back(angleCheck);
+        thetaCheck.pop_front();
 
         line(frame, blueCenter, greenCenter, Scalar(165, 206, 94), 1, 8, 0);
         if (newDest) {
@@ -304,10 +343,13 @@ int main() {
         //cout << "Blue: " << blueX << ", " << blueY << endl;
         //cout << "Green: " << greenX << ", " << greenY << endl;
         //cout << "Orientation: " << ang.orientation << endl;
+   //     cout <<"The distance is: " << dist << endl;
+   //     cout <<"The angle is: " << angle << endl;
+        //printf("The command is: %d\n", command);
 
         vector<int> compressionParams;
         compressionParams.push_back(CV_IMWRITE_JPEG_QUALITY);
-        compressionParams.push_back(5);
+        compressionParams.push_back(30);
         // Store the temp jpg file for video streaming
         imwrite("/tmp/video/img.jpg", frame, compressionParams);
         
