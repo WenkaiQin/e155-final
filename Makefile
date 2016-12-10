@@ -8,7 +8,7 @@ all: positionCapture readInputCoordinate testZMQ
 test: testZMQ testUSB
 
 positionCapture:
-	$(CC)  -Wall $(CFLAGS) $(LIBS) positionCapture.cpp -lzmq -o positionCapture
+	$(CC) -O3 -Wall $(CFLAGS) $(LIBS) positionCapture.cpp -lzmq -o positionCapture
 
 readInputCoordinate:
 	$(CCC) -Wall -g readInputCoordinate.c -lzmq -o readInputCoordinate

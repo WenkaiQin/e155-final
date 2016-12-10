@@ -50,13 +50,11 @@ void tearDownUSB(int fd) {
     return;
 }
 
-void writeByte(char *b, int fd) {
-    char byte[1];
-    char stop = 60;
+void writeByte(const char *b, int fd) {
 
     write(fd, b, 1);
-    delayMillis(25);
-    write(fd, &stop, 1);
+   // delayMillis(40);
+   // write(fd, &stop, 1);
 //    printf("Bytes sending: %d\n", byte); 
     tcdrain(fd);
     return;    

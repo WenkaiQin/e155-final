@@ -7,10 +7,8 @@ int main() {
     int i = 0;
     pioInit();
     while (true) {
-        delayMillis(500);
         char c = '<';
-        writeByte(&c, fd);
-        delayMillis(500);
+       // writeByte(&c, fd);
         c = 24;
         writeByte(&c, fd);
         ++i;
