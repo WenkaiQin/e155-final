@@ -1,3 +1,10 @@
+// Wenkai Qin, Jack Yang
+// E155 Fall 2016
+
+// clk_gen.sv
+// Uses a clock input of 40 MHz to generate output clocks bck at 9.6 kHz and 
+// sck at 153.6 kHz.
+
 module clk_gen(input  logic clk,
 					input  logic reset,
 					output logic bck,
@@ -12,6 +19,7 @@ module clk_gen(input  logic clk,
 	assign bck = counter[17];
 	assign sck = counter[13];
 	
+//  For testing with ModelSim.	
 //	assign bck = counter[4];
 //	assign sck = counter[0];
 					

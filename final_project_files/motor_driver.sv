@@ -1,3 +1,9 @@
+// Wenkai Qin, Jack Yang
+// E155 Fall 2016
+
+// decodes 2 bits of instruction to generate an appropriate PWM wave.
+
+
 module motor_driver(input  logic clk, reset,
 					input  logic [1:0] instr,
 					output logic pwm);

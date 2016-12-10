@@ -1,3 +1,10 @@
+// Wenkai Qin, Jack Yang
+// E155 Fall 2016
+
+// final_project.sv
+// Top-level module.
+
+// creset and reset for testing with ModelSim.
 module final_project(input  logic clk, /*creset, reset,*/
 							input  logic rx,
 							output logic [7:0] data,

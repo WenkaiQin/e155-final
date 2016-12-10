@@ -1,16 +1,9 @@
-// module uart_rx(input  logic clk,
-// 					input  logic creset,
-// 					input  logic reset,
-//                input  logic rx,
-// 					output logic [7:0] data,
-// 					output logic test);
-	
-// 	logic bck, sck, valid;
-// 	clk_gen cg0(clk, creset, bck, sck);
-// 	rx_state fsm0(sck, reset, rx, data);
-			
-// endmodule
+// Wenkai Qin, Jack Yang
+// E155 Fall 2016
 
+// uart_rx.sv
+// Implements a UART receiver. 1 start bit, 1 stop bit. Takes in async data, outputs
+// data on an 8-bit register.
 
 module uart_rx(input  logic clk,
 					 input  logic reset,
