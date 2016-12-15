@@ -1,3 +1,15 @@
+/*
+ * File Name: writeToUSB.hpp
+ * Author: Yi Yang and Wenkai Qin
+ * Date: Dec. 8. 2016
+ * Intro: This file is the USB driver module of the Robot Waypoint Planner
+ *        project. It uses a termios struct to set up the serial setting to
+ *        1 start bit, 1 stop bit, no parity, 8-bit packet size, and 9600HZ
+ *        baud rate.
+ *        Then, it provides a writeByte function for the external program to
+ *        write a byte into the specific port.
+ */
+
 // This piece of code is inspired by the answer on stack overflow
 // www.stackoverflow.com/questions/6947413
 
@@ -53,10 +65,6 @@ void tearDownUSB(int fd) {
 void writeByte(const char *b, int fd) {
 
     write(fd, b, 1);
-   // delayMillis(40);
-   // write(fd, &stop, 1);
-//    printf("Bytes sending: %d\n", byte); 
     tcdrain(fd);
-    return;    
-} 
-
+    return;
+}

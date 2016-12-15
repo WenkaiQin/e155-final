@@ -1,3 +1,16 @@
+/*
+ * File Name: readInputCoordinate.c
+ * Author: Yi Yang and Wenkai Qin
+ * Date: Dec. 8. 2016
+ * Intro: This file is the CGI program for the Robot WayPoint Planner
+ *        project. It contains the the web input cgi C script to receive
+ *        and parse the user input, and then send the user input to
+ *        the positionCapture.cpp program.
+ *        It uses sscanf to parse the inputs, and later used a message queue
+ *        to send the data to the main program through a TCP socket.
+ */
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +25,6 @@ int main() {
     void *context = zmq_ctx_new();
     void *requester = zmq_socket(context, ZMQ_REQ);
     zmq_connect(requester, "tcp://localhost:5555");
-//    int request_nbr;
 
     printf("%s%c%c\n","Content-Type:text/html;charset=iso-8859-1",13,10);
     lenstr = getenv("CONTENT_LENGTH");
@@ -24,7 +36,6 @@ int main() {
         sscanf(input, "x-pos=%d&y-pos=%d", &x_pos, &y_pos);
         printf("<p> X: %d, Y: %d\n\n", x_pos, y_pos);
     }
-//    for (request_nbr = 0; request_nbr != 10; request_nbr++) {
     char buffer[3];
     zmq_send(requester, input, 30, 0);
     zmq_recv(requester, buffer, 3, 0);
@@ -36,4 +47,3 @@ int main() {
     free(input);
     return 0;
 }
-
